@@ -1,0 +1,685 @@
+type: collection.insomnia.rest/5.0
+name: SOC Application API
+meta:
+  id: wrk_socapp
+  created: 1763230302734
+  modified: 1763230302734
+  description: Security Operations Center (SOC) application for analyzing Zscaler NSS web proxy logs
+collection:
+- name: AI
+  meta:
+    id: fld_ai
+    created: 1737417600000
+    modified: 1737417600000
+    sortKey: 5000000000000
+    description: AI-powered analysis endpoints
+  children:
+  - url: '{{ base_url }}/api/ai/log-summary/{{ _.log_file_id }}'
+    name: Log Summary
+    meta:
+      id: req_ai_log_summary
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get AI-generated log summary
+      sortKey: -1737417600000
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/ai/explain-log-entry/{{ _.log_entry_id }}'
+    name: Explain Log Entry
+    meta:
+      id: req_ai_explain_entry
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get AI explanation for a log entry
+      sortKey: -1737417600001
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/ai/investigate'
+    name: Investigate
+    meta:
+      id: req_ai_investigate
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: AI investigation copilot
+      sortKey: -1737417600002
+    method: POST
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    body:
+      mimeType: application/json
+      text: "{\n  \"log_file_id\": \"{{ _.log_file_id }}\",\n  \"question\": \"What are the top security threats in this log\
+        \ file?\"\n}"
+    headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+- name: Dashboard
+  meta:
+    id: fld_dashboard
+    created: 1737417600000
+    modified: 1737417600000
+    sortKey: 3000000000000
+    description: Dashboard statistics and analytics endpoints
+  children:
+  - name: Anomalies
+    meta:
+      id: fld_anomalies
+      created: 1737417600000
+      modified: 1737417600000
+      sortKey: 4000000000000
+      description: Anomaly detection and analysis endpoints
+    children:
+    - url: '{{ base_url }}/api/anomalies'
+      name: List Anomalies
+      meta:
+        id: req_anomalies_list
+        created: 1737417600000
+        modified: 1737417600000
+        isPrivate: false
+        description: List anomalies with optional filters
+        sortKey: -1737417600000
+      method: GET
+      settings:
+        renderRequestBody: true
+        encodeUrl: true
+        followRedirects: global
+        cookies:
+          send: true
+          store: true
+        rebuildPath: true
+      parameters:
+      - name: log_file_id
+        value: ''
+        disabled: false
+        description: Filter by log file ID
+      - name: anomaly_type
+        value: ''
+        disabled: false
+        description: Filter by anomaly type (burst_blocked, malicious_domain, etc.)
+      - name: min_confidence
+        value: '0.5'
+        disabled: false
+        description: Minimum confidence threshold (0.0-1.0)
+      - name: page
+        value: '1'
+        disabled: false
+        description: Page number
+      - name: limit
+        value: '50'
+        disabled: false
+        description: Items per page
+      headers:
+      - name: Authorization
+        value: Bearer {{ _.auth_token }}
+      - name: X-User-Id
+        value: '{{ user_id }}'
+    - url: '{{ base_url }}/api/anomalies/timeline'
+      name: Anomaly Timeline
+      meta:
+        id: req_anomalies_timeline
+        created: 1737417600000
+        modified: 1737417600000
+        isPrivate: false
+        description: Get anomaly timeline data
+        sortKey: -1737417600001
+      method: GET
+      settings:
+        renderRequestBody: true
+        encodeUrl: true
+        followRedirects: global
+        cookies:
+          send: true
+          store: true
+        rebuildPath: true
+      parameters:
+      - name: log_file_id
+        value: ''
+        disabled: false
+        description: Filter by log file ID
+      - name: bucket_minutes
+        value: '15'
+        disabled: false
+        description: Time bucket size in minutes
+      headers:
+      - name: Authorization
+        value: Bearer {{ _.auth_token }}
+      - name: X-User-Id
+        value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/dashboard/stats'
+    name: Dashboard Stats
+    meta:
+      id: req_dashboard_stats
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get dashboard statistics
+      sortKey: -1737417600000
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: log_file_id
+      value: ''
+      disabled: false
+      description: Filter by log file ID (optional)
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/dashboard/timeline'
+    name: Dashboard Timeline
+    meta:
+      id: req_dashboard_timeline
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get timeline data for charts
+      sortKey: -1737417600001
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: log_file_id
+      value: ''
+      disabled: false
+      description: Filter by log file ID
+    - name: bucket_minutes
+      value: '15'
+      disabled: false
+      description: Time bucket size in minutes
+    - name: hours
+      value: '24'
+      disabled: false
+      description: Number of hours to include
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/dashboard/top-categories'
+    name: Top Categories
+    meta:
+      id: req_dashboard_top_categories
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get top URL categories
+      sortKey: -1737417600002
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: log_file_id
+      value: ''
+      disabled: false
+      description: Filter by log file ID
+    - name: limit
+      value: '10'
+      disabled: false
+      description: Number of top categories to return
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/dashboard/top-domains'
+    name: Top Domains
+    meta:
+      id: req_dashboard_top_domains
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get top domains
+      sortKey: -1737417600003
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: log_file_id
+      value: ''
+      disabled: false
+      description: Filter by log file ID
+    - name: limit
+      value: '10'
+      disabled: false
+      description: Number of top domains to return
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/dashboard/top-users'
+    name: Top Users
+    meta:
+      id: req_dashboard_top_users
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get top users by request count
+      sortKey: -1737417600004
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: log_file_id
+      value: ''
+      disabled: false
+      description: Filter by log file ID
+    - name: limit
+      value: '10'
+      disabled: false
+      description: Number of top users to return
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/dashboard/recent-logs'
+    name: Recent Logs
+    meta:
+      id: req_dashboard_recent_logs
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get recent log entries
+      sortKey: -1737417600005
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: log_file_id
+      value: ''
+      disabled: false
+      description: Filter by log file ID
+    - name: limit
+      value: '10'
+      disabled: false
+      description: Number of recent logs to return
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+- name: Logs
+  meta:
+    id: fld_logs
+    created: 1737417600000
+    modified: 1737417600000
+    sortKey: 2000000000000
+    description: Log file and entry management endpoints
+  children:
+  - url: '{{ base_url }}/api/logs/upload'
+    name: Upload Log File
+    meta:
+      id: req_logs_upload
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Upload and process a Zscaler NSS log file
+      sortKey: -1737417600000
+    method: POST
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    body:
+      mimeType: multipart/form-data
+      params:
+      - id: pair_file
+        name: file
+        value: ''
+        description: Select log file to upload
+        fileName: ''
+        type: file
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/logs/files'
+    name: List Log Files
+    meta:
+      id: req_logs_files_list
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: List all uploaded log files with pagination
+      sortKey: -1737417600001
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: page
+      value: '1'
+      disabled: false
+      description: Page number
+    - name: limit
+      value: '20'
+      disabled: false
+      description: Items per page
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/logs/files/{{ _.log_file_id }}'
+    name: Get Log File
+    meta:
+      id: req_logs_files_get
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get details of a specific log file by ID
+      sortKey: -1737417600002
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/logs/files/{{ _.log_file_id }}/preview'
+    name: Preview Log File
+    meta:
+      id: req_logs_files_preview
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get preview of log file (first N lines)
+      sortKey: -1737417600003
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: lines
+      value: '10'
+      disabled: false
+      description: Number of lines to preview
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/logs/entries'
+    name: List Log Entries
+    meta:
+      id: req_logs_entries_list
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: List log entries with optional filters
+      sortKey: -1737417600004
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    parameters:
+    - name: log_file_id
+      value: ''
+      disabled: false
+      description: Filter by log file ID
+    - name: start_time
+      value: ''
+      disabled: false
+      description: Filter by start time (ISO format)
+    - name: end_time
+      value: ''
+      disabled: false
+      description: Filter by end time (ISO format)
+    - name: action
+      value: ''
+      disabled: false
+      description: Filter by action (Allowed/Blocked)
+    - name: category
+      value: ''
+      disabled: false
+      description: Filter by URL category
+    - name: threat_category
+      value: ''
+      disabled: false
+      description: Filter by threat category
+    - name: is_anomalous
+      value: ''
+      disabled: false
+      description: Filter by anomaly status (true/false)
+    - name: domain
+      value: ''
+      disabled: false
+      description: Filter by domain
+    - name: page
+      value: '1'
+      disabled: false
+      description: Page number
+    - name: limit
+      value: '50'
+      disabled: false
+      description: Items per page
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+  - url: '{{ base_url }}/api/logs/entries/{{ _.log_entry_id }}'
+    name: Get Log Entry
+    meta:
+      id: req_logs_entries_get
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get details of a specific log entry by ID
+      sortKey: -1737417600005
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+    - name: X-User-Id
+      value: '{{ user_id }}'
+- name: Authentication
+  meta:
+    id: fld_auth
+    created: 1737417600000
+    modified: 1737417600000
+    sortKey: 1000000000000
+    description: Authentication endpoints
+  children:
+  - url: '{{ base_url }}/api/auth/login'
+    name: Login
+    meta:
+      id: req_auth_login
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Login with email and password to get JWT token
+      sortKey: -1737417600000
+    method: POST
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    body:
+      mimeType: application/json
+      text: "{\n  \"email\": \"test@example.com\",\n  \"password\": \"testpassword123\"\n}"
+    headers:
+    - name: Content-Type
+      value: application/json
+  - url: '{{ base_url }}/api/auth/logout'
+    name: Logout
+    meta:
+      id: req_auth_logout
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Logout endpoint (requires authentication)
+      sortKey: -1737417600001
+    method: POST
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+  - url: '{{ base_url }}/api/auth/me'
+    name: Get Current User
+    meta:
+      id: req_auth_me
+      created: 1737417600000
+      modified: 1737417600000
+      isPrivate: false
+      description: Get current authenticated user information
+      sortKey: -1737417600002
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+    headers:
+    - name: Authorization
+      value: Bearer {{ _.auth_token }}
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_c21f969b5f03d33d43e0
+    created: 1763230302734
+    modified: 1763230302734
+environments:
+  name: Base Environment
+  meta:
+    id: env_base
+    created: 1763230302734
+    modified: 1763230302734
+    isPrivate: false
+  data: &id001
+    base_url: http://localhost:5000
+    auth_token: ''
+    user_id: ''
+  subEnvironments:
+  - name: Base Environment
+    meta:
+      id: env_sub_base
+      created: 1763230302734
+      modified: 1763230302734
+      isPrivate: false
+      sortKey: 1000000000000
+    data: *id001

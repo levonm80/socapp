@@ -1,0 +1,1167 @@
+openapi: 3.0.3
+info:
+  title: SOC Application API
+  description: |
+    Security Operations Center (SOC) application for analyzing Zscaler NSS web proxy logs.
+    
+    This API provides endpoints for:
+    - User authentication
+    - Log file upload and management
+    - Log entry analysis and filtering
+    - Dashboard statistics and analytics
+    - Anomaly detection
+    - AI-powered threat analysis
+    
+    ## Authentication
+    Most endpoints require JWT authentication. Obtain a token by calling the `/api/auth/login` endpoint,
+    then include it in the `Authorization` header as `Bearer <token>`.
+    
+  version: 1.0.0
+  contact:
+    name: SOC Application Support
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Logs
+    description: Log file upload and log entry management
+  - name: Dashboard
+    description: Dashboard statistics and analytics
+  - name: Anomalies
+    description: Anomaly detection and analysis
+  - name: AI
+    description: AI-powered threat analysis and investigation
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user with email and password to obtain JWT token
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: test@example.com
+                password:
+                  type: string
+                  format: password
+                  example: testpassword123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT authentication token
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Logout current user (token should be removed client-side)
+      operationId: logout
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Get information about the currently authenticated user
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/logs/upload:
+    post:
+      tags:
+        - Logs
+      summary: Upload log file
+      description: Upload and process a Zscaler NSS log file
+      operationId: uploadLogFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Zscaler NSS log file (CSV or text format)
+      responses:
+        '200':
+          description: File uploaded and processing started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  log_file_id:
+                    type: string
+                    format: uuid
+                    example: 550e8400-e29b-41d4-a716-446655440000
+                  status:
+                    type: string
+                    enum: [processing, completed, failed]
+                    example: processing
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/logs/files:
+    get:
+      tags:
+        - Logs
+      summary: List log files
+      description: Get a paginated list of uploaded log files
+      operationId: listLogFiles
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of log files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LogFile'
+                  total:
+                    type: integer
+                    example: 42
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 20
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/logs/files/{file_id}:
+    get:
+      tags:
+        - Logs
+      summary: Get log file details
+      description: Get details of a specific log file by ID
+      operationId: getLogFile
+      parameters:
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '200':
+          description: Log file details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogFile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/logs/files/{file_id}/preview:
+    get:
+      tags:
+        - Logs
+      summary: Preview log file
+      description: Get a preview of the first N lines of a log file
+      operationId: previewLogFile
+      parameters:
+        - $ref: '#/components/parameters/FileId'
+        - name: lines
+          in: query
+          description: Number of lines to preview
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Log file preview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preview:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "2022-06-20T12:00:00,172.17.3.49,https://example.com,Allowed"
+                      - "2022-06-20T12:01:00,172.17.3.50,https://test.com,Blocked"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/logs/entries:
+    get:
+      tags:
+        - Logs
+      summary: List log entries
+      description: Get a paginated list of log entries with optional filters
+      operationId: listLogEntries
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter by log file ID
+          schema:
+            type: string
+            format: uuid
+        - name: start_time
+          in: query
+          description: Filter by start time (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+            example: "2022-06-20T00:00:00Z"
+        - name: end_time
+          in: query
+          description: Filter by end time (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+            example: "2022-06-20T23:59:59Z"
+        - name: action
+          in: query
+          description: Filter by action
+          schema:
+            type: string
+            enum: [Allowed, Blocked]
+        - name: category
+          in: query
+          description: Filter by URL category
+          schema:
+            type: string
+        - name: threat_category
+          in: query
+          description: Filter by threat category
+          schema:
+            type: string
+        - name: user_identifier
+          in: query
+          description: Filter by user identifier (department or IP)
+          schema:
+            type: string
+        - name: is_anomalous
+          in: query
+          description: Filter by anomaly status
+          schema:
+            type: boolean
+        - name: domain
+          in: query
+          description: Filter by domain
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LogEntry'
+                  total:
+                    type: integer
+                    example: 1000
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 50
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/logs/entries/{entry_id}:
+    get:
+      tags:
+        - Logs
+      summary: Get log entry
+      description: Get details of a specific log entry by ID
+      operationId: getLogEntry
+      parameters:
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '200':
+          description: Log entry details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/dashboard/stats:
+    get:
+      tags:
+        - Dashboard
+      summary: Get dashboard statistics
+      description: Get overall statistics for the dashboard
+      operationId: getDashboardStats
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter statistics by log file ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/dashboard/timeline:
+    get:
+      tags:
+        - Dashboard
+      summary: Get timeline data
+      description: Get timeline data for charts showing activity over time
+      operationId: getTimeline
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter by log file ID
+          schema:
+            type: string
+            format: uuid
+        - name: bucket_minutes
+          in: query
+          description: Time bucket size in minutes
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+        - name: hours
+          in: query
+          description: Number of hours to include
+          schema:
+            type: integer
+            default: 24
+            minimum: 1
+      responses:
+        '200':
+          description: Timeline data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  buckets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimelineBucket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/dashboard/top-categories:
+    get:
+      tags:
+        - Dashboard
+      summary: Get top URL categories
+      description: Get the most frequently accessed URL categories
+      operationId: getTopCategories
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter by log file ID
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Number of top categories to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Top URL categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CategoryStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/dashboard/top-domains:
+    get:
+      tags:
+        - Dashboard
+      summary: Get top domains
+      description: Get the most frequently accessed domains
+      operationId: getTopDomains
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter by log file ID
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Number of top domains to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Top domains
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domains:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DomainStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/dashboard/top-users:
+    get:
+      tags:
+        - Dashboard
+      summary: Get top users
+      description: Get users with the highest request counts
+      operationId: getTopUsers
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter by log file ID
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Number of top users to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Top users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/dashboard/recent-logs:
+    get:
+      tags:
+        - Dashboard
+      summary: Get recent log entries
+      description: Get the most recent log entries
+      operationId: getRecentLogs
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter by log file ID
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          description: Number of recent logs to return
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Recent log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LogEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/anomalies:
+    get:
+      tags:
+        - Anomalies
+      summary: List anomalies
+      description: Get a paginated list of detected anomalies with optional filters
+      operationId: listAnomalies
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter by log file ID
+          schema:
+            type: string
+            format: uuid
+        - name: anomaly_type
+          in: query
+          description: Filter by anomaly type
+          schema:
+            type: string
+            enum: [burst_blocked, malicious_domain, risky_category, unusual_ua, large_download]
+        - name: min_confidence
+          in: query
+          description: Minimum confidence threshold (0.0-1.0)
+          schema:
+            type: number
+            format: float
+            default: 0.5
+            minimum: 0.0
+            maximum: 1.0
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of anomalies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  anomalies:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Anomaly'
+                  total:
+                    type: integer
+                    example: 25
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/anomalies/timeline:
+    get:
+      tags:
+        - Anomalies
+      summary: Get anomaly timeline
+      description: Get timeline data showing anomalies over time
+      operationId: getAnomalyTimeline
+      parameters:
+        - name: log_file_id
+          in: query
+          description: Filter by log file ID
+          schema:
+            type: string
+            format: uuid
+        - name: bucket_minutes
+          in: query
+          description: Time bucket size in minutes
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+      responses:
+        '200':
+          description: Anomaly timeline data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  buckets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AnomalyTimelineBucket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/ai/log-summary/{log_file_id}:
+    get:
+      tags:
+        - AI
+      summary: Get AI log summary
+      description: Get an AI-generated summary of a log file
+      operationId: getLogSummary
+      parameters:
+        - $ref: '#/components/parameters/FileId'
+      responses:
+        '200':
+          description: AI-generated log summary
+          content:
+            application/json:
+              schema:
+                type: object
+                description: AI-generated summary (structure may vary)
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/ai/explain-log-entry/{entry_id}:
+    get:
+      tags:
+        - AI
+      summary: Explain log entry
+      description: Get an AI explanation for a specific log entry
+      operationId: explainLogEntry
+      parameters:
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '200':
+          description: AI explanation
+          content:
+            application/json:
+              schema:
+                type: object
+                description: AI-generated explanation (structure may vary)
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/ai/investigate:
+    post:
+      tags:
+        - AI
+      summary: AI investigation
+      description: Ask AI questions about log data for threat investigation
+      operationId: investigate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - log_file_id
+                - question
+              properties:
+                log_file_id:
+                  type: string
+                  format: uuid
+                  example: 550e8400-e29b-41d4-a716-446655440000
+                question:
+                  type: string
+                  example: What are the top security threats in this log file?
+      responses:
+        '200':
+          description: AI investigation result
+          content:
+            application/json:
+              schema:
+                type: object
+                description: AI-generated investigation result (structure may vary)
+                additionalProperties: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /api/auth/login
+
+  parameters:
+    FileId:
+      name: file_id
+      in: path
+      required: true
+      description: Log file UUID
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+
+    EntryId:
+      name: entry_id
+      in: path
+      required: true
+      description: Log entry UUID
+      schema:
+        type: string
+        format: uuid
+        example: 660e8400-e29b-41d4-a716-446655440000
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        email:
+          type: string
+          format: email
+          example: test@example.com
+        created_at:
+          type: string
+          format: date-time
+          example: "2022-06-20T12:00:00Z"
+
+    LogFile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        filename:
+          type: string
+          example: zscaler_logs_2022-06-20.csv
+        uploaded_by:
+          type: string
+          format: uuid
+          example: 123e4567-e89b-12d3-a456-426614174000
+        uploaded_at:
+          type: string
+          format: date-time
+          example: "2022-06-20T12:00:00Z"
+        status:
+          type: string
+          enum: [uploading, processing, completed, failed]
+          example: completed
+        total_entries:
+          type: integer
+          example: 10000
+        date_range_start:
+          type: string
+          format: date-time
+          example: "2022-06-20T00:00:00Z"
+        date_range_end:
+          type: string
+          format: date-time
+          example: "2022-06-20T23:59:59Z"
+        metadata:
+          type: object
+          nullable: true
+
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        log_file_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        location:
+          type: string
+          example: ny-gre
+        protocol:
+          type: string
+          example: HTTPS
+        url:
+          type: string
+          example: https://example.com/path
+        domain:
+          type: string
+          example: example.com
+        action:
+          type: string
+          enum: [Allowed, Blocked]
+        app_name:
+          type: string
+          example: Gmail
+        app_class:
+          type: string
+          example: Business Apps
+        throttle_req_size:
+          type: integer
+        throttle_resp_size:
+          type: integer
+        req_size:
+          type: integer
+        resp_size:
+          type: integer
+        url_class:
+          type: string
+          example: Business Use
+        url_supercat:
+          type: string
+          example: Business and Economy
+        url_cat:
+          type: string
+          example: Email
+        dlp_dict:
+          type: string
+        dlp_eng:
+          type: string
+        dlp_hits:
+          type: integer
+        file_class:
+          type: string
+        file_type:
+          type: string
+        location2:
+          type: string
+        department:
+          type: string
+          example: Engineering
+        client_ip:
+          type: string
+          format: ipv4
+          example: 172.17.3.49
+        server_ip:
+          type: string
+          format: ipv4
+          example: 66.211.175.229
+        http_method:
+          type: string
+          example: GET
+        http_status:
+          type: integer
+          example: 200
+        user_agent:
+          type: string
+          example: Mozilla/5.0
+        threat_category:
+          type: string
+          example: Phishing
+        fw_filter:
+          type: string
+        fw_rule:
+          type: string
+        policy_type:
+          type: string
+        reason:
+          type: string
+        is_anomalous:
+          type: boolean
+        anomaly_type:
+          type: string
+          enum: [burst_blocked, malicious_domain, risky_category, unusual_ua, large_download]
+        anomaly_reason:
+          type: string
+        anomaly_confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+        created_at:
+          type: string
+          format: date-time
+
+    DashboardStats:
+      type: object
+      properties:
+        total_requests:
+          type: integer
+          example: 100000
+        blocked_events:
+          type: integer
+          example: 1250
+        malicious_urls:
+          type: integer
+          example: 45
+        high_risk_users:
+          type: integer
+          example: 3
+        data_transfer_bytes:
+          type: integer
+          format: int64
+          example: 5368709120
+        trends:
+          type: object
+          properties:
+            total_requests_pct:
+              type: number
+              format: float
+              example: 5.2
+            blocked_events_pct:
+              type: number
+              format: float
+              example: -2.1
+
+    TimelineBucket:
+      type: object
+      properties:
+        time:
+          type: string
+          format: date-time
+          example: "2022-06-20T12:00:00Z"
+        total:
+          type: integer
+          example: 1500
+        blocked:
+          type: integer
+          example: 25
+
+    CategoryStats:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Email
+        count:
+          type: integer
+          example: 15000
+        percentage:
+          type: number
+          format: float
+          example: 15.5
+
+    DomainStats:
+      type: object
+      properties:
+        domain:
+          type: string
+          example: example.com
+        count:
+          type: integer
+          example: 5000
+        blocked_count:
+          type: integer
+          example: 10
+
+    UserStats:
+      type: object
+      properties:
+        identifier:
+          type: string
+          example: Engineering
+        request_count:
+          type: integer
+          example: 25000
+        risk_score:
+          type: number
+          format: float
+          example: 35.5
+
+    Anomaly:
+      type: object
+      properties:
+        entry_id:
+          type: string
+          format: uuid
+        log_entry:
+          $ref: '#/components/schemas/LogEntry'
+        anomaly_type:
+          type: string
+          enum: [burst_blocked, malicious_domain, risky_category, unusual_ua, large_download]
+        reason:
+          type: string
+          example: Multiple blocked requests in short time window
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          example: 0.85
+
+    AnomalyTimelineBucket:
+      type: object
+      properties:
+        time:
+          type: string
+          format: date-time
+          example: "2022-06-20T12:00:00Z"
+        count:
+          type: integer
+          example: 5
+        by_type:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            malicious_domain: 3
+            burst_blocked: 2
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Invalid request
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized - authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+

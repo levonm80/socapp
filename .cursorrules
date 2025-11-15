@@ -1,0 +1,473 @@
+# Project Context: Security Operations & Log Analysis Platform
+
+This is a **SOC (Security Operations Center) application** for analyzing Zscaler NSS web proxy logs.
+- **Domain**: Cybersecurity, threat detection, log parsing, behavioral analysis
+- **Scale**: 100K+ log entries per analysis window
+- **Critical paths**: Log parsing, threat detection, malicious domain identification, user behavior analysis
+- **Data format**: CSV-based Zscaler NSS logs with 34+ fields including timestamps, URLs, threats, user profiles
+
+---
+
+# MANDATORY TDD Rule
+
+**RED-GREEN-REFACTOR IS NON-NEGOTIABLE.**
+
+You MUST follow Test-Driven Development (TDD) for ALL code changes:
+
+## TDD Workflow (STRICT):
+1. **Write FAILING test FIRST** - No exceptions. Never modify implementation without a failing test.
+2. **Run test and verify it fails** - Confirm the test fails for the right reason.
+3. **Write minimal implementation** - Just enough to make the test pass.
+4. **Run test and verify it passes** - All tests must pass.
+5. **Refactor if needed** - Improve design while keeping tests green.
+6. **Commit only when green** - Never commit broken tests.
+
+## Test File Requirements:
+- Python: `test_*.py` in `tests/` directory mirroring source structure
+- TypeScript: `*.test.ts` or `*.test.tsx` co-located with implementation
+- Test function names: `test_should_<expected_behavior>_when_<context>`
+  - Example: `test_should_detect_phishing_when_domain_in_malicious_list`
+  - Example: `test_should_raise_value_error_when_timestamp_format_invalid`
+
+## Test Structure (MANDATORY):
+All tests MUST follow **Arrange-Act-Assert** pattern:
+```python
+def test_should_parse_zscaler_log_when_valid_csv():
+    # Arrange - setup test data and dependencies
+    log_line = '"Mon Jun 20 12:00:00 2022","ny-gre","HTTP","example.com/",...'
+    parser = ZscalerLogParser()
+    
+    # Act - execute the behavior under test
+    result = parser.parse_line(log_line)
+    
+    # Assert - verify expected outcome
+    assert result.timestamp == datetime(2022, 6, 20, 12, 0, 0)
+    assert result.domain == "example.com"
+```
+
+## Enforcement:
+- **NEVER** write implementation code without a failing test first
+- **NEVER** delete or weaken tests without explicit user approval
+- **NEVER** skip tests for "quick fixes" - write the test first, always
+- **ALWAYS** show test code before implementation code in responses
+- **ALWAYS** provide the exact test command to run
+
+If user says "just implement X, skip tests":
+→ **REFUSE** and explain TDD is mandatory for this project
+→ Offer to write tests first, then implementation
+
+---
+
+# Backend (Python / Flask) Rules
+
+## Test Framework & Structure:
+- **Framework**: pytest with pytest-mock for mocking
+- **Directory structure**:
+  ```
+  backend/
+    logs/
+      parser.py
+      service.py
+    threats/
+      detector.py
+  tests/
+    logs/
+      test_parser.py      # mirrors backend/logs/parser.py
+      test_service.py
+    threats/
+      test_detector.py
+    conftest.py           # shared fixtures
+  ```
+
+## Test Naming (STRICT):
+- Test files: `test_<module_name>.py`
+- Test functions: `test_should_<expected_behavior>_when_<context>`
+- Test classes (for grouping): `TestClassName` (only when logical grouping needed)
+- Fixtures: Use descriptive names like `sample_zscaler_log`, `malicious_domain_list`
+
+## Pytest-Specific Requirements:
+- Use **fixtures** for shared test data and setup (in `conftest.py`)
+- Use `pytest.mark.parametrize` for testing multiple inputs
+- Use `pytest.raises` for exception testing with specific error messages
+- Use `pytest.mark.slow` for tests taking >100ms
+- Use `@pytest.fixture` scope appropriately: `function` (default), `class`, `module`, `session`
+
+## Security-Critical Testing (MANDATORY):
+For log parsing and threat detection code, tests MUST cover:
+1. **Malicious input handling**:
+   - SQL injection attempts in log fields
+   - XSS payloads in URLs
+   - Path traversal attempts
+   - Excessively long fields (>10KB)
+   - Malformed CSV (missing quotes, extra commas)
+   
+2. **Data validation**:
+   - Invalid IP addresses
+   - Malformed timestamps
+   - Unknown threat categories
+   - Missing required fields
+   
+3. **Edge cases**:
+   - Empty logs
+   - Single-entry logs
+   - Logs with Unicode/emoji in domains
+   - Logs spanning midnight (timezone handling)
+
+## Performance Testing:
+- Tests parsing >10K entries MUST be marked `@pytest.mark.slow`
+- MUST include at least one performance test verifying:
+  - Parse 100K entries in <30 seconds
+  - Memory usage stays <500MB for 100K entries
+  
+## Mocking Standards:
+- **NEVER** mock the code under test
+- **ALWAYS** mock external dependencies: DB, filesystem, HTTP, time
+- Use `pytest-mock` with `mocker.patch()` not `unittest.mock`
+- Mock at the boundary: mock the DB layer, not the service layer
+- Use **fakes** for complex dependencies (e.g., in-memory DB for tests)
+
+## Flask-Specific Testing:
+- Use Flask test client: `client = app.test_client()`
+- Test routes with actual HTTP methods: `client.get()`, `client.post()`
+- Verify HTTP status codes explicitly: `assert response.status_code == 200`
+- Verify JSON responses: `assert response.json['key'] == expected`
+- Test authentication/authorization on protected routes
+- Test CORS headers if API is public
+
+## Test Data Management:
+- Use `test-data/` directory for fixture files
+- Generate synthetic logs using `test-data/generate_zscaler_nss_like.py`
+- Keep test data realistic but minimal (100-1000 entries for most tests)
+- NEVER commit real production logs (PII, security risk)
+
+## Coverage Requirements:
+- **Minimum 80% line coverage** for all backend code
+- **100% coverage required** for:
+  - Log parsers
+  - Threat detection logic
+  - Security validation functions
+  - Data sanitization functions
+- **Acceptable to skip**:
+  - Flask app initialization boilerplate
+  - CLI argument parsing (if trivial)
+  - Logging statements
+
+## Commands:
+- Run all tests: `pytest`
+- Run specific test file: `pytest tests/logs/test_parser.py`
+- Run with coverage: `pytest --cov=backend --cov-report=term-missing`
+- Run fast tests only: `pytest -m "not slow"`
+- Run in parallel: `pytest -n auto` (requires pytest-xdist)
+
+---
+
+# Frontend (Next.js + TypeScript) Rules
+
+## Test Framework:
+- **Framework**: Vitest (preferred) or Jest
+- **Component testing**: React Testing Library (@testing-library/react)
+- **E2E testing**: Playwright (if needed for critical flows)
+- **Location**: Co-located with components (`*.test.tsx`) or in `__tests__/`
+
+## Test Naming (STRICT):
+- Test files: `<ComponentName>.test.tsx` or `<utilName>.test.ts`
+- Test descriptions: `should <expected behavior> when <context>`
+  ```typescript
+  describe('LogTable', () => {
+    it('should display log entries when data is provided', () => {
+      // test
+    });
+    
+    it('should show empty state when no logs available', () => {
+      // test
+    });
+    
+    it('should highlight malicious domains in red when threat detected', () => {
+      // test
+    });
+  });
+  ```
+
+## Component Testing Standards:
+- **NEVER** test implementation details (state, internal functions)
+- **ALWAYS** test user-visible behavior
+- **ALWAYS** test from user perspective: what they see, click, type
+- Use `screen.getByRole()` over `getByTestId()` (better accessibility)
+- Use `userEvent` over `fireEvent` (more realistic interactions)
+
+## What to Test:
+1. **Rendering**: Component renders with different prop combinations
+2. **User interactions**: Clicks, typing, form submissions
+3. **Conditional rendering**: Error states, loading states, empty states
+4. **Accessibility**: ARIA labels, keyboard navigation, screen reader text
+5. **Integration with API**: Mock API calls, test loading/error/success states
+
+## What NOT to Test:
+- CSS/styling (use visual regression tests if needed)
+- Third-party library internals
+- Next.js framework behavior
+- Component lifecycle methods directly
+
+## Security Testing (Frontend):
+- Test XSS prevention: render user input with dangerous characters (`<script>`, `onclick=`)
+- Test URL validation: malicious URLs don't execute
+- Test data sanitization: user input is escaped before display
+- Test authentication flows: protected routes redirect to login
+
+## Mocking Standards:
+- Mock API calls with MSW (Mock Service Worker) or vitest's mock functions
+- Mock Next.js router: `next/router` and `next/navigation`
+- Mock environment variables with `import.meta.env`
+- Use fixtures for complex mock data (Zscaler log entries)
+
+## Snapshot Testing:
+- Use sparingly, only for stable, complex UI structures
+- NEVER snapshot entire pages (too brittle)
+- Review snapshots carefully during updates
+- Prefer explicit assertions over snapshots
+
+## TypeScript Standards:
+- **100% type safety required** - no `any` types in tests
+- Use `satisfies` for type-safe mock data
+- Define test fixture types that match API response types
+- Use generics for reusable test utilities
+
+## Test Data:
+- Create realistic Zscaler log fixtures mirroring backend data
+- Use same field names/structure as actual API responses
+- Include edge cases: empty arrays, null values, malformed data
+
+## Commands:
+- Run all tests: `pnpm test` or `npm test`
+- Run specific test: `pnpm test LogTable`
+- Run in watch mode: `pnpm test --watch`
+- Run with coverage: `pnpm test --coverage`
+- Run UI mode (Vitest): `pnpm test --ui`
+
+---
+
+# AI / LLM Integration Rules
+
+For AI-powered threat analysis, behavioral detection, and log summarization:
+
+## Testing Strategy:
+AI/LLM code is **NOT exempt from TDD**. You MUST test:
+
+1. **Prompt Construction** (Pure functions):
+   - Input: Log data, user context, threat indicators
+   - Output: Structured prompt with all required fields
+   - Test prompt templates include all necessary context
+   - Test data sanitization (remove PII, truncate long logs)
+   - Test edge cases: empty logs, missing fields, malformed data
+
+2. **Response Parsing** (Pure functions):
+   - Input: LLM response (JSON, text, or structured)
+   - Output: Validated, typed data structures
+   - Test parsing valid responses
+   - Test handling malformed responses (missing fields, wrong types)
+   - Test handling rate limits, timeouts, API errors
+
+3. **Integration Layer** (Mocked):
+   - Mock LLM API calls (OpenAI, Anthropic, etc.)
+   - Test retry logic with exponential backoff
+   - Test circuit breaker pattern for failed requests
+   - Test token counting/budget enforcement
+   - Test request/response logging (without leaking PII)
+
+## Security Requirements:
+- **NEVER** send PII to LLMs: strip user emails, IPs, real domains
+- **ALWAYS** sanitize/anonymize log data before sending to LLM
+- **ALWAYS** validate LLM responses before using them (treat as untrusted input)
+- Test prompt injection attacks: malicious log entries trying to manipulate AI
+
+## Prompt Engineering Tests:
+```python
+def test_should_build_threat_analysis_prompt_when_logs_provided():
+    # Arrange
+    logs = [mock_zscaler_log(threat="Phishing")]
+    builder = ThreatPromptBuilder()
+    
+    # Act
+    prompt = builder.build(logs)
+    
+    # Assert
+    assert "Analyze the following security logs" in prompt
+    assert "Phishing" in prompt
+    assert "user@corp.com" not in prompt  # PII removed
+    assert len(prompt) < 4000  # Token limit
+```
+
+## LLM Response Testing:
+```python
+def test_should_parse_threat_summary_when_valid_json_response():
+    # Arrange
+    llm_response = '{"severity": "high", "threat_type": "phishing", "affected_users": 3}'
+    parser = LLMResponseParser()
+    
+    # Act
+    result = parser.parse_threat_summary(llm_response)
+    
+    # Assert
+    assert result.severity == ThreatSeverity.HIGH
+    assert result.threat_type == "phishing"
+    assert result.affected_users == 3
+```
+
+## Mocking LLM APIs:
+- Use `responses` library for HTTP mocking or `pytest-mock`
+- Create realistic mock responses based on actual API behavior
+- Test both success and failure scenarios
+- Mock streaming responses if using streaming APIs
+- Include realistic latencies (100-2000ms delays)
+
+## Cost & Performance Testing:
+- Track token usage in tests
+- Verify batching logic (group logs efficiently)
+- Test caching: don't reanalyze identical log patterns
+- Test rate limiting: respect API quotas
+
+## NO Real API Calls in Tests:
+- **NEVER** call real LLM APIs in unit/integration tests
+- Use real APIs only in manual testing or separate E2E tests
+- Gate real API tests behind environment variable: `RUN_LLM_INTEGRATION_TESTS=1`
+
+---
+
+# TDD Safety Rails & Enforcement
+
+## When User Resists TDD:
+If user says: "just implement X, skip tests" or "I'll add tests later":
+1. **REFUSE politely but firmly**
+2. Explain: "This is a security-critical SOC application. TDD is mandatory for all code."
+3. Offer: "I can write the tests first (takes 2 minutes), then implementation. This ensures correctness."
+4. If user insists: "I need your explicit confirmation to skip TDD: 'OVERRIDE TDD RULES'"
+
+## When Tests Conflict with Requirements:
+If existing tests fail due to new requirements:
+1. **Stop and ask**: "The new requirement breaks 3 existing tests. Should I:"
+   - Option A: Update tests to match new behavior (behavior change)
+   - Option B: Keep existing behavior and adjust requirements
+2. **NEVER** silently delete or weaken tests
+3. Show which tests are affected and why they fail
+
+## When Tests Are Unclear:
+If requirements are ambiguous:
+1. Write tests for the most likely interpretation
+2. Add `# TODO: Clarify behavior when <edge case>`
+3. Ask user to review tests before writing implementation
+
+## Test Quality Standards:
+REJECT these anti-patterns:
+- ❌ Tests that just call the function and assert it doesn't crash
+- ❌ Tests with no assertions (`test_something()` that only runs code)
+- ❌ Tests with hardcoded magic numbers without explanation
+- ❌ Tests that test multiple unrelated behaviors
+- ❌ Tests that depend on test execution order
+- ❌ Tests with sleeps/waits (use fakes for time)
+- ❌ Tests that write to real filesystem/database
+
+REQUIRE these patterns:
+- ✅ One clear assertion per test (or closely related assertions)
+- ✅ Descriptive test names explaining what's being tested
+- ✅ Clear Arrange-Act-Assert structure
+- ✅ Isolated tests (no shared mutable state)
+- ✅ Fast tests (<10ms for unit tests)
+- ✅ Deterministic tests (same input = same output, always)
+
+## Code Quality Principles:
+Always bias toward:
+- **Small, focused functions**: Easier to test, easier to understand
+- **Pure functions**: No side effects, deterministic, trivial to test
+- **Dependency injection**: Pass dependencies as parameters (makes mocking easy)
+- **Clear boundaries**: Separate I/O (DB, API, files) from business logic
+- **Explicit over implicit**: Better to be verbose than clever
+- **Type safety**: Leverage Python type hints and TypeScript types
+
+## Refactoring Under Test:
+When refactoring existing code:
+1. **NEVER** refactor without tests
+2. If no tests exist: Write characterization tests first (document current behavior)
+3. Refactor in small steps, keeping tests green
+4. Add new tests for improved design
+5. Remove old tests only if behavior genuinely changes
+
+## Integration Test Strategy:
+- **Unit tests** (95% of tests): Pure functions, business logic, validation
+- **Integration tests** (4% of tests): Database queries, API routes, file parsing
+- **E2E tests** (1% of tests): Critical user journeys only
+  - Example: Upload logs → Parse → Detect threats → Display results
+
+## When to Skip Tests (VERY RARE):
+Only skip tests for:
+- Generated code (auto-generated types, migrations)
+- Throwaway scripts/experiments clearly marked as temporary
+- Simple configuration files (JSON, YAML)
+
+Everything else MUST have tests.
+
+---
+
+# Code Review Checklist (for AI)
+
+Before presenting code to user, verify:
+- [ ] Tests written BEFORE implementation
+- [ ] All tests have descriptive names: `test_should_<behavior>_when_<context>`
+- [ ] All tests follow Arrange-Act-Assert pattern
+- [ ] No hardcoded test data without explanation
+- [ ] External dependencies are mocked
+- [ ] Security edge cases are tested (for parsing/validation code)
+- [ ] Performance is acceptable (mark slow tests with `@pytest.mark.slow`)
+- [ ] Coverage is adequate (80%+ for general code, 100% for security-critical)
+- [ ] Test command is provided
+- [ ] Expected test output is explained
+
+---
+
+# Project-Specific Domain Knowledge
+
+## Zscaler NSS Log Format:
+34 CSV fields per log line:
+1. Timestamp (Mon Jun 20 HH:MM:SS YYYY)
+2. Location (e.g., "ny-gre")
+3. Protocol (HTTP/HTTPS)
+4. URL
+5. Action (Allowed/Blocked)
+6. App Name
+7. App Class
+8-11. Request/Response sizes
+12-14. URL classifications
+15-17. DLP fields
+18-19. File fields
+20-21. Location/Department
+22-23. Client IP / Server IP
+24. HTTP Method
+25. HTTP Status
+26. User Agent
+27. Threat Category
+28-31. Firewall/Policy fields
+32-34. Placeholders
+
+## Key Business Logic:
+- **Threat detection**: Malicious domains, phishing, malware
+- **User behavior**: Identify risky users (high malicious_tendency in test data)
+- **Time-based analysis**: Business hours vs off-hours activity
+- **Department-based**: Different risk profiles per department
+- **Script detection**: curl/python-requests indicate automation (potential risk)
+
+## Test Data Generation:
+- Use `test-data/generate_zscaler_nss_like.py` for synthetic logs
+- Includes realistic user profiles with behavior patterns
+- Includes malicious domains for testing threat detection
+- 100K entries generated, chronologically sorted
+
+---
+
+# Final Word
+
+This is a **security-critical application**. Bugs in log parsing, threat detection, or data validation could:
+- Miss actual threats (false negatives)
+- Flag legitimate activity as threats (false positives)
+- Expose PII or sensitive data
+- Allow injection attacks
+
+**TDD is not optional. It's a security requirement.**
