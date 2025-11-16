@@ -74,6 +74,8 @@ rm /tmp/cors_list.tmp
 rm /tmp/kong.yml.tmp
 
 echo "Generated kong.yml successfully"
-echo "JWT Secret: ${JWT_SECRET_KEY:0:10}... (truncated for security)"
+# Use printf for POSIX-compliant substring (first 10 characters)
+JWT_PREVIEW=$(printf "%.10s" "$JWT_SECRET_KEY")
+echo "JWT Secret: ${JWT_PREVIEW}... (truncated for security)"
 echo "Backend URL: $BACKEND_URL"
 echo "CORS Origins: $CORS_ORIGINS_INPUT"
