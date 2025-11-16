@@ -41,8 +41,23 @@ sed -e "s|\${JWT_SECRET_KEY}|${JWT_SECRET_KEY}|g" \
     /kong/kong.yml.template > /tmp/kong.yml.tmp
 
 # Then replace CORS_ORIGINS placeholder with YAML list (multiline)
+# Write CORS list to temp file to avoid shell expansion issues with newlines
+echo "$CORS_YAML_LIST" > /tmp/cors_list.tmp
+
 # Match the line containing ${CORS_ORIGINS} and replace with the YAML list
-awk -v cors_list="$CORS_YAML_LIST" '
+# Use here-document to avoid shell expansion issues with $ in regex
+awk <<'AWK_EOF' /tmp/kong.yml.tmp > /kong/kong.yml
+  BEGIN {
+    # Read CORS list from temp file
+    while ((getline cors_line < "/tmp/cors_list.tmp") > 0) {
+      if (cors_list == "") {
+        cors_list = cors_line
+      } else {
+        cors_list = cors_list "\n" cors_line
+      }
+    }
+    close("/tmp/cors_list.tmp")
+  }
   /^\s*\$\{CORS_ORIGINS\}$/ {
     print cors_list
     next
@@ -52,7 +67,9 @@ awk -v cors_list="$CORS_YAML_LIST" '
     gsub(/\$\{CORS_ORIGINS\}/, cors_list)
     print
   }
-' /tmp/kong.yml.tmp > /kong/kong.yml
+AWK_EOF
+
+rm /tmp/cors_list.tmp
 
 rm /tmp/kong.yml.tmp
 
