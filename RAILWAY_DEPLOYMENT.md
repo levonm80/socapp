@@ -130,7 +130,7 @@ Railway provides internal hostnames for services. To find your backend service n
 
 ### Frontend Environment Variables
 
-Set these in Railway dashboard:
+**CRITICAL**: Set these environment variables in Railway dashboard **BEFORE** the first build:
 
 ```
 NEXT_PUBLIC_API_URL=https://your-kong-domain.railway.app/api
@@ -138,9 +138,12 @@ NODE_ENV=production
 PORT=3000
 ```
 
-**Important**: 
+**Important Notes**: 
 - `NEXT_PUBLIC_API_URL` should be Kong's public URL (not backend's URL)
 - Get Kong's public URL from Railway dashboard (Service → Settings → Networking)
+- **Next.js embeds `NEXT_PUBLIC_*` variables at BUILD TIME**, not runtime
+- Railway automatically passes these as Docker build arguments
+- If you change `NEXT_PUBLIC_API_URL` after building, you must **redeploy** to rebuild the app
 
 ### Frontend Service Settings
 
