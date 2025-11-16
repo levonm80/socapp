@@ -45,8 +45,8 @@ sed -e "s|\${JWT_SECRET_KEY}|${JWT_SECRET_KEY}|g" \
 echo "$CORS_YAML_LIST" > /tmp/cors_list.tmp
 
 # Match the line containing ${CORS_ORIGINS} and replace with the YAML list
-# Use here-document to avoid shell expansion issues with $ in regex
-awk <<'AWK_EOF' /tmp/kong.yml.tmp > /kong/kong.yml
+# Use here-document with -f - to read script from stdin, avoiding shell expansion issues
+awk -f - /tmp/kong.yml.tmp > /kong/kong.yml <<'AWK_EOF'
   BEGIN {
     # Read CORS list from temp file
     while ((getline cors_line < "/tmp/cors_list.tmp") > 0) {
