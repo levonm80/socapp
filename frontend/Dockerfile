@@ -4,18 +4,18 @@ WORKDIR /app
 
 # Accept build arguments for Next.js public environment variables
 ARG NEXT_PUBLIC_API_URL
-ARG NODE_ENV=production
 
-# Set environment variables for Next.js build (NEXT_PUBLIC_* are embedded at build time)
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ENV NODE_ENV=${NODE_ENV}
-
-# Install dependencies
+# Install dependencies FIRST (before setting NODE_ENV to ensure devDependencies are installed)
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Copy application code
+# Copy application code (including config files needed for build)
 COPY . .
+
+# Set environment variables for Next.js build (NEXT_PUBLIC_* are embedded at build time)
+# Set NODE_ENV after npm ci to ensure devDependencies are installed
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NODE_ENV=production
 
 # Build the application (Next.js will use NEXT_PUBLIC_* env vars from above)
 RUN npm run build
