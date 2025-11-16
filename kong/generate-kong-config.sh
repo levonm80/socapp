@@ -35,9 +35,10 @@ for origin in $(echo "$CORS_ORIGINS_INPUT" | tr ',' ' '); do
 done
 
 # First, replace simple variables with sed
+# Use /tmp for temporary file (writable by all users)
 sed -e "s|\${JWT_SECRET_KEY}|${JWT_SECRET_KEY}|g" \
     -e "s|\${BACKEND_URL}|${BACKEND_URL}|g" \
-    /kong/kong.yml.template > /kong/kong.yml.tmp
+    /kong/kong.yml.template > /tmp/kong.yml.tmp
 
 # Then replace CORS_ORIGINS placeholder with YAML list (multiline)
 # Match the line containing ${CORS_ORIGINS} and replace with the YAML list
@@ -51,9 +52,9 @@ awk -v cors_list="$CORS_YAML_LIST" '
     gsub(/\$\{CORS_ORIGINS\}/, cors_list)
     print
   }
-' /kong/kong.yml.tmp > /kong/kong.yml
+' /tmp/kong.yml.tmp > /kong/kong.yml
 
-rm /kong/kong.yml.tmp
+rm /tmp/kong.yml.tmp
 
 echo "Generated kong.yml successfully"
 echo "JWT Secret: ${JWT_SECRET_KEY:0:10}... (truncated for security)"

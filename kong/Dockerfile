@@ -26,6 +26,13 @@ RUN echo '#!/bin/sh\nset -e\n/kong/generate-kong-config.sh\n\n# Set Kong environ
 RUN chmod -R a+r /kong/*.template /kong/*.sh 2>/dev/null || true && \
     chmod a+x /kong/*.sh 2>/dev/null || true
 
+# Make /kong directory writable by kong user (needed for generate-kong-config.sh to write kong.yml)
+# Get the kong user's UID/GID and ensure /kong is writable
+RUN KONG_UID=$(id -u kong 2>/dev/null || echo 1000) && \
+    KONG_GID=$(id -g kong 2>/dev/null || echo 1000) && \
+    chown -R $KONG_UID:$KONG_GID /kong && \
+    chmod -R u+w /kong
+
 # Switch back to kong user (Kong images use 'kong' user by default)
 USER kong
 
