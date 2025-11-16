@@ -99,47 +99,52 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="relative flex h-auto min-h-screen w-full flex-col bg-background-light dark:bg-background-dark">
+    <div className="relative flex h-auto min-h-screen w-full flex-col dark overflow-x-hidden bg-background-light dark:bg-background-dark">
       <div className="layout-container flex h-full grow flex-col">
-        <div className="px-4 md:px-10 lg:px-20 xl:px-40 flex flex-1 justify-center py-5">
-          <div className="layout-content-container flex flex-col w-full max-w-[960px] flex-1 gap-8">
-            {/* TopNavBar */}
-            <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-border-dark px-4 sm:px-10 py-3">
-              <div className="flex items-center gap-4 text-text-primary-dark">
-                <div className="size-6 text-primary">
-                  <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M44 11.2727C44 14.0109 39.8386 16.3957 33.69 17.6364C39.8386 18.877 44 21.2618 44 24C44 26.7382 39.8386 29.123 33.69 30.3636C39.8386 31.6043 44 33.9891 44 36.7273C44 40.7439 35.0457 44 24 44C12.9543 44 4 40.7439 4 36.7273C4 33.9891 8.16144 31.6043 14.31 30.3636C8.16144 29.123 4 26.7382 4 24C4 21.2618 8.16144 18.877 14.31 17.6364C8.16144 16.3957 4 14.0109 4 11.2727C4 7.25611 12.9543 4 24 4C35.0457 4 44 7.25611 44 11.2727Z" fill="currentColor"></path>
-                  </svg>
-                </div>
-                <h2 className="text-text-primary-dark text-lg font-bold leading-tight tracking-[-0.015em]">
-                  Security Analytics Platform
-                </h2>
-              </div>
-              <div className="hidden md:flex flex-1 justify-end gap-8">
-                <div className="flex items-center gap-9">
-                  <Link href="/dashboard" className="text-text-primary-dark text-sm font-medium leading-normal hover:text-primary">
-                    Dashboard
-                  </Link>
-                  <Link href="/anomalies" className="text-text-primary-dark text-sm font-medium leading-normal hover:text-primary">
-                    Threat Intelligence
-                  </Link>
-                  <Link href="/upload" className="text-primary text-sm font-bold leading-normal">
-                    Upload
-                  </Link>
-                </div>
-                <div className="flex gap-2">
-                  <button className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-component-dark text-text-primary-dark gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5 hover:bg-border-dark">
-                    <span className="material-symbols-outlined text-text-secondary-dark text-[20px]">notifications</span>
-                  </button>
-                  <button className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 bg-component-dark text-text-primary-dark gap-2 text-sm font-bold leading-normal tracking-[0.015em] min-w-0 px-2.5 hover:bg-border-dark">
-                    <span className="material-symbols-outlined text-text-secondary-dark text-[20px]">settings</span>
-                  </button>
-                </div>
-                <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-primary/20 border border-border-dark"></div>
-              </div>
-            </header>
+        {/* Header */}
+        <header className="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-solid border-border-dark px-6 sm:px-10 py-3 bg-background-dark/80 backdrop-blur-sm">
+          <div className="flex items-center gap-4 text-white">
+            <div className="size-6 text-primary">
+              <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                <g clipPath="url(#clip0_6_330)">
+                  <path
+                    clipRule="evenodd"
+                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
+                    fill="currentColor"
+                    fillRule="evenodd"
+                  ></path>
+                </g>
+                <defs>
+                  <clipPath id="clip0_6_330">
+                    <rect fill="white" height="48" width="48"></rect>
+                  </clipPath>
+                </defs>
+              </svg>
+            </div>
+            <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em]">Security Analytics</h2>
+          </div>
+          <div className="flex flex-1 justify-end gap-4 md:gap-8">
+            <div className="hidden md:flex items-center gap-8">
+              <Link href="/dashboard" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
+                Dashboard
+              </Link>
+              <Link href="/upload" className="text-white text-sm font-medium leading-normal px-3 py-2 rounded-lg bg-primary/20">
+                Upload
+              </Link>
+              <Link href="/logs" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
+                Logs
+              </Link>
+              <Link href="/ai-copilot" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
+                AI Assistant
+              </Link>
+            </div>
+            <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-border-dark bg-primary/20"></div>
+          </div>
+        </header>
 
-            <main className="flex flex-col gap-8 p-4">
+        <main className="px-4 sm:px-6 lg:px-10 py-8">
+          <div className="px-4 md:px-10 lg:px-20 xl:px-40 flex flex-1 justify-center py-5">
+            <div className="layout-content-container flex flex-col w-full max-w-[960px] flex-1 gap-8">
               {/* PageHeading */}
               <div className="flex flex-wrap justify-between gap-3">
                 <div className="flex min-w-72 flex-col gap-3">
@@ -372,9 +377,9 @@ export default function UploadPage() {
                   </button>
                 </div>
               )}
-            </main>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

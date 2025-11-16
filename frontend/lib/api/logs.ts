@@ -75,6 +75,7 @@ export interface ListLogEntriesParams {
   user_identifier?: string;
   is_anomalous?: boolean;
   domain?: string;
+  search?: string;  // General text search across multiple columns
 }
 
 export interface ListLogEntriesResponse {
@@ -140,6 +141,7 @@ export const logsApi = {
       user_identifier,
       is_anomalous,
       domain,
+      search,
     } = params;
 
     const queryParams: Record<string, any> = { page, limit };
@@ -152,6 +154,7 @@ export const logsApi = {
     if (user_identifier) queryParams.user_identifier = user_identifier;
     if (is_anomalous !== undefined) queryParams.is_anomalous = is_anomalous;
     if (domain) queryParams.domain = domain;
+    if (search) queryParams.search = search;
 
     const response = await apiClient.get('/logs/entries', {
       params: queryParams,

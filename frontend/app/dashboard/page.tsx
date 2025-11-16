@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { dashboardApi, DashboardStats, TimelineData, RecentLogs, TopCategories } from '@/lib/api/dashboard';
+import { logsApi, LogEntry } from '@/lib/api/logs';
+import LogEntryDetailModal from '@/app/logs/LogEntryDetailModal';
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -11,6 +13,8 @@ export default function DashboardPage() {
   const [timeline, setTimeline] = useState<TimelineData | null>(null);
   const [categories, setCategories] = useState<TopCategories | null>(null);
   const [recentLogs, setRecentLogs] = useState<RecentLogs | null>(null);
+  const [recentLogEntries, setRecentLogEntries] = useState<LogEntry[]>([]);
+  const [selectedEntry, setSelectedEntry] = useState<LogEntry | null>(null);
   
   // Individual loading states for each section
   const [loadingStats, setLoadingStats] = useState(false);
@@ -83,8 +87,12 @@ export default function DashboardPage() {
     try {
       setLoadingRecentLogs(true);
       setErrorRecentLogs(null);
-      const data = await dashboardApi.getRecentLogs(4);
-      setRecentLogs(data);
+      // Use logs API to get recent entries with pagination
+      const response = await logsApi.listLogEntries({
+        page: 1,
+        limit: 20, // Show 20 recent entries
+      });
+      setRecentLogEntries(response.entries);
     } catch (err: any) {
       setErrorRecentLogs(err.response?.data?.error || 'Failed to load recent logs');
       console.error('Recent logs error:', err);
@@ -186,9 +194,6 @@ export default function DashboardPage() {
               </Link>
               <Link href="/logs" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
                 Logs
-              </Link>
-              <Link href="/anomalies" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
-                Anomalies
               </Link>
               <Link href="/ai-copilot" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
                 AI Assistant
@@ -471,7 +476,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Recent Log Entries Table */}
-              {loadingRecentLogs && !recentLogs ? (
+              {loadingRecentLogs && recentLogEntries.length === 0 ? (
                 <div>
                   <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em] px-1 pb-4 pt-2">
                     Recent Log Entries
@@ -482,7 +487,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-              ) : errorRecentLogs && !recentLogs ? (
+              ) : errorRecentLogs && recentLogEntries.length === 0 ? (
                 <div>
                   <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em] px-1 pb-4 pt-2">
                     Recent Log Entries
@@ -493,11 +498,19 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-              ) : recentLogs ? (
+              ) : recentLogEntries.length > 0 ? (
                 <div>
-                  <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em] px-1 pb-4 pt-2">
-                    Recent Log Entries
-                  </h2>
+                  <div className="flex items-center justify-between px-1 pb-4 pt-2">
+                    <h2 className="text-white text-xl font-bold leading-tight tracking-[-0.015em]">
+                      Recent Log Entries
+                    </h2>
+                    <Link
+                      href="/logs"
+                      className="text-primary text-sm font-medium hover:underline"
+                    >
+                      View All →
+                    </Link>
+                  </div>
                   <div className="rounded-xl border border-border-dark bg-card-dark overflow-x-auto">
                     <table className="w-full text-sm text-left text-gray-400">
                       <thead className="text-xs text-gray-300 uppercase bg-card-dark/50">
@@ -523,38 +536,44 @@ export default function DashboardPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {recentLogs.entries && recentLogs.entries.length > 0 ? (
-                          recentLogs.entries.map((entry) => (
-                            <tr key={entry.id} className="border-t border-border-dark hover:bg-border-dark/30">
-                              <td className="px-6 py-4 text-white">
-                                {new Date(entry.timestamp).toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 text-white">{entry.user || 'Unknown'}</td>
-                              <td className="px-6 py-4 text-white">{entry.client_ip || 'N/A'}</td>
-                              <td className="px-6 py-4 text-white truncate max-w-xs">{entry.url || entry.domain || 'N/A'}</td>
-                              <td className="px-6 py-4 text-white">{entry.url_cat || 'Unknown'}</td>
-                              <td className="px-6 py-4 text-right">
-                                <span
-                                  className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                                    entry.action === 'Blocked'
-                                      ? 'bg-danger/20 text-danger'
-                                      : entry.action === 'Allowed' || entry.action === 'ALLOW'
-                                      ? 'bg-success/20 text-success'
-                                      : 'bg-warning/20 text-warning'
-                                  }`}
-                                >
-                                  {entry.action?.toUpperCase() || 'UNKNOWN'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-4 text-center text-text-secondary-dark">
-                              No recent log entries available
+                        {recentLogEntries.map((entry) => (
+                          <tr 
+                            key={entry.id} 
+                            className="border-t border-border-dark hover:bg-border-dark/30 cursor-pointer"
+                            onClick={async () => {
+                              try {
+                                const fullEntry = await logsApi.getLogEntry(entry.id);
+                                setSelectedEntry(fullEntry);
+                              } catch (err: any) {
+                                console.error('Error fetching entry details:', err);
+                                setSelectedEntry(entry);
+                              }
+                            }}
+                          >
+                            <td className="px-6 py-4 text-white whitespace-nowrap">
+                              {new Date(entry.timestamp).toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 text-white">{entry.department || entry.client_ip || 'Unknown'}</td>
+                            <td className="px-6 py-4 text-white">{entry.client_ip || 'N/A'}</td>
+                            <td className="px-6 py-4 text-white truncate max-w-xs" title={entry.url}>
+                              {entry.url || entry.domain || 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 text-white">{entry.url_cat || 'Unknown'}</td>
+                            <td className="px-6 py-4 text-right">
+                              <span
+                                className={`inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                                  entry.action === 'Blocked'
+                                    ? 'bg-danger/20 text-danger'
+                                    : entry.action === 'Allowed' || entry.action === 'ALLOW'
+                                    ? 'bg-success/20 text-success'
+                                    : 'bg-warning/20 text-warning'
+                                }`}
+                              >
+                                {entry.action?.toUpperCase() || 'UNKNOWN'}
+                              </span>
                             </td>
                           </tr>
-                        )}
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -607,6 +626,9 @@ export default function DashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* Log Entry Detail Modal */}
+      {selectedEntry && <LogEntryDetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />}
     </div>
   );
 }

@@ -398,6 +398,7 @@ def list_log_entries():
     user_identifier = request.args.get('user_identifier')
     is_anomalous = request.args.get('is_anomalous')
     domain = request.args.get('domain')
+    search = request.args.get('search')  # General text search across multiple columns
     page = request.args.get('page', 1, type=int)
     limit = request.args.get('limit', 50, type=int)
     
@@ -448,6 +449,24 @@ def list_log_entries():
     
     if domain:
         query = query.filter(LogEntry.domain == domain)
+    
+    # General text search across multiple columns
+    if search:
+        search_term = f'%{search}%'
+        query = query.filter(
+            or_(
+                LogEntry.url.ilike(search_term),
+                LogEntry.domain.ilike(search_term),
+                LogEntry.client_ip.ilike(search_term),
+                LogEntry.department.ilike(search_term),
+                LogEntry.user_agent.ilike(search_term),
+                LogEntry.url_cat.ilike(search_term),
+                LogEntry.threat_category.ilike(search_term),
+                LogEntry.server_ip.ilike(search_term),
+                LogEntry.location.ilike(search_term),
+                LogEntry.app_name.ilike(search_term)
+            )
+        )
     
     # Paginate
     entries = query.order_by(LogEntry.timestamp.desc()).paginate(
