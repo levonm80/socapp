@@ -60,6 +60,18 @@ A full-stack application for analyzing Zscaler NSS web proxy logs with AI-powere
 
 The backend trusts Kong-validated requests and uses the `X-User-Id` header for authentication.
 
+## Deployment
+
+### Railway Deployment
+
+For production deployment on Railway.com, see **[RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)** for complete instructions.
+
+Quick summary:
+- Deploy PostgreSQL (Railway managed service)
+- Deploy Backend, Kong Gateway, and Frontend services
+- Configure environment variables in Railway dashboard
+- All secrets managed securely via Railway environment variables
+
 ## Quick Start with Docker
 
 1. **Clone the repository**

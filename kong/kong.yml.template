@@ -1,0 +1,97 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: backend-service
+    url: ${BACKEND_URL}
+    routes:
+      - name: auth-login-route
+        paths:
+          - /api/auth/login
+        methods:
+          - POST
+          - OPTIONS
+        strip_path: false
+        plugins:
+          - name: cors
+            config:
+              origins:
+                ${CORS_ORIGINS}
+              methods:
+                - GET
+                - POST
+                - PUT
+                - DELETE
+                - OPTIONS
+                - PATCH
+              headers:
+                - Accept
+                - Authorization
+                - Content-Type
+                - X-User-Id
+                - X-Requested-With
+              exposed_headers:
+                - X-User-Id
+                - Content-Type
+              credentials: true
+              max_age: 3600
+              preflight_continue: false
+      
+      - name: protected-routes
+        paths:
+          - /api/logs
+          - /api/dashboard
+          - /api/anomalies
+          - /api/ai
+          - /api/auth/logout
+          - /api/auth/me
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        strip_path: false
+        plugins:
+          - name: jwt
+            config:
+              secret_is_base64: false
+              claims_to_verify:
+                - exp
+              header_names:
+                - Authorization
+              uri_param_names: []
+              anonymous: null
+              run_on_preflight: false
+          - name: cors
+            config:
+              origins:
+                ${CORS_ORIGINS}
+              methods:
+                - GET
+                - POST
+                - PUT
+                - DELETE
+                - OPTIONS
+                - PATCH
+              headers:
+                - Accept
+                - Authorization
+                - Content-Type
+                - X-User-Id
+                - X-Requested-With
+              exposed_headers:
+                - X-User-Id
+                - Content-Type
+              credentials: true
+              max_age: 3600
+              preflight_continue: false
+
+consumers:
+  - username: default-jwt-consumer
+    jwt_secrets:
+      - key: flask-jwt
+        algorithm: HS256
+        secret: ${JWT_SECRET_KEY}
+        rsa_public_key: null
+

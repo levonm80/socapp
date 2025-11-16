@@ -18,6 +18,11 @@ COPY . .
 # Expose port
 EXPOSE 5000
 
-# Run the application
-CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000"]
+# Use gunicorn for production, fallback to flask run for development
+# Railway will set PORT environment variable, but we default to 5000
+CMD if [ "$FLASK_ENV" = "production" ]; then \
+      gunicorn --bind 0.0.0.0:${PORT:-5000} --workers 2 --threads 2 --timeout 120 --access-logfile - --error-logfile - --log-level info wsgi:app; \
+    else \
+      python run.py; \
+    fi
 
