@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/contexts/AuthContext';
 import { dashboardApi, DashboardStats, TimelineData, RecentLogs, TopCategories } from '@/lib/api/dashboard';
 import { logsApi, LogEntry } from '@/lib/api/logs';
-import LogEntryDetailModal from '@/app/logs/LogEntryDetailModal';
+import LogEntryDetailModal from '../logs/LogEntryDetailModal';
 
 export default function DashboardPage() {
   const { isAuthenticated, isLoading } = useAuth();
