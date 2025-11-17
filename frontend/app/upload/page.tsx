@@ -131,7 +131,7 @@ export default function UploadPage() {
               <Link href="/upload" className="text-white text-sm font-medium leading-normal px-3 py-2 rounded-lg bg-primary/20">
                 Upload
               </Link>
-              <Link href="/logs" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
+              <Link href="/logentry" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
                 Logs
               </Link>
               <Link href="/ai-copilot" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">

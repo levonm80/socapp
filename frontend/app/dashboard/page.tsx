@@ -192,7 +192,7 @@ export default function DashboardPage() {
               <Link href="/upload" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
                 Upload
               </Link>
-              <Link href="/logs" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
+              <Link href="/logentry" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
                 Logs
               </Link>
               <Link href="/ai-copilot" className="text-gray-300 hover:text-white text-sm font-medium leading-normal">
@@ -505,7 +505,7 @@ export default function DashboardPage() {
                       Recent Log Entries
                     </h2>
                     <Link
-                      href="/logs"
+                      href="/logentry"
                       className="text-primary text-sm font-medium hover:underline"
                     >
                       View All →
