@@ -97,6 +97,6 @@ consumers:
         # IMPORTANT: Replace this secret with your actual JWT_SECRET_KEY value
         # Kong doesn't support environment variable substitution in YAML files
         # This secret MUST match the JWT_SECRET_KEY in your .env file
-        secret: change-me-in-production-must-match-JWT_SECRET_KEY
+        secret: change-me-in-production-must-match-between-services
         rsa_public_key: null
 

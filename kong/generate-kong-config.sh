@@ -18,22 +18,6 @@ fi
 # Default CORS origins if not set (for development)
 CORS_ORIGINS_INPUT="${CORS_ORIGINS:-http://localhost:3000}"
 
-# Convert CORS_ORIGINS to YAML list format
-# Split by comma or space, then format as YAML list items with proper indentation
-CORS_YAML_LIST=""
-FIRST=true
-for origin in $(echo "$CORS_ORIGINS_INPUT" | tr ',' ' '); do
-  if [ -n "$origin" ]; then
-    if [ "$FIRST" = true ]; then
-      CORS_YAML_LIST="                - $origin"
-      FIRST=false
-    else
-      CORS_YAML_LIST="$CORS_YAML_LIST
-                - $origin"
-    fi
-  fi
-done
-
 # First, replace simple variables with sed
 # Use /tmp for temporary file (writable by all users)
 sed -e "s|\${JWT_SECRET_KEY}|${JWT_SECRET_KEY}|g" \
@@ -41,19 +25,30 @@ sed -e "s|\${JWT_SECRET_KEY}|${JWT_SECRET_KEY}|g" \
     /kong/kong.yml.template > /tmp/kong.yml.tmp
 
 # Then replace CORS_ORIGINS placeholder with YAML list (multiline)
-# Write CORS list to temp file to avoid shell expansion issues with newlines
-echo "$CORS_YAML_LIST" > /tmp/cors_list.tmp
+# Write each CORS origin to temp file separately (without indentation, will be added in awk)
+# This avoids shell newline handling issues
+> /tmp/cors_list.tmp
+for origin in $(echo "$CORS_ORIGINS_INPUT" | tr ',' ' '); do
+  if [ -n "$origin" ]; then
+    echo "- $origin" >> /tmp/cors_list.tmp
+  fi
+done
 
 # Match the line containing ${CORS_ORIGINS} and replace with the YAML list
 # Use here-document with -f - to read script from stdin, avoiding shell expansion issues
 awk -f - /tmp/kong.yml.tmp > /kong/kong.yml <<'AWK_EOF'
   BEGIN {
-    # Read CORS list from temp file
+    # Read CORS list from temp file and add proper indentation (16 spaces to match template)
+    # Use explicit 16 spaces - be very careful with spacing
     while ((getline cors_line < "/tmp/cors_list.tmp") > 0) {
+      # Remove trailing newline/whitespace
+      sub(/[ \t\n\r]+$/, "", cors_line)
+      # Add exactly 16 spaces for indentation
+      indented_line = "                " cors_line
       if (cors_list == "") {
-        cors_list = cors_line
+        cors_list = indented_line
       } else {
-        cors_list = cors_list "\n" cors_line
+        cors_list = cors_list "\n" indented_line
       }
     }
     close("/tmp/cors_list.tmp")
